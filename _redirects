@@ -1,0 +1,5 @@
+# Cloudflare Pages path redirects can be added here.
+# Domain-level redirects such as www.hsm-zzl.top -> hsm-zzl.top should be
+# configured in Cloudflare Bulk Redirects, not in this file.
+
+/home / 301
