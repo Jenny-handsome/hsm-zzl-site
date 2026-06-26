@@ -106,13 +106,26 @@ async function bootstrapAdmin({ request, env }) {
   const username = normalizeUsername(body.username);
   const password = requirePassword(body.password);
   const now = new Date().toISOString();
-  const result = await env.DB.prepare(
-    "INSERT INTO users (username, password_hash, role, disabled, daily_limit, created_at, updated_at) VALUES (?, ?, 'admin', 0, 0, ?, ?)"
-  ).bind(username, await createPasswordHash(password), now, now).run();
+
+  let passwordHash;
+  try {
+    passwordHash = await createPasswordHash(password);
+  } catch {
+    throw httpError(500, "PASSWORD_HASH_FAILED", "创建密码哈希失败，请重新部署后再试");
+  }
+
+  let result;
+  try {
+    result = await env.DB.prepare(
+      "INSERT INTO users (username, password_hash, role, disabled, daily_limit, created_at, updated_at) VALUES (?, ?, 'admin', 0, 0, ?, ?)"
+    ).bind(username, passwordHash, now, now).run();
+  } catch {
+    throw httpError(500, "ADMIN_INSERT_FAILED", "写入管理员账号失败，请检查 users 表是否已创建");
+  }
 
   await env.DB.prepare(
     "INSERT INTO quota_events (target_user_id, event_type, new_value, reason, created_at) VALUES (?, 'create_user', 'admin', 'bootstrap admin', ?)"
-  ).bind(result.meta.last_row_id, now).run();
+  ).bind(result.meta.last_row_id, now).run().catch(() => null);
 
   return json({ ok: true });
 }
@@ -525,6 +538,7 @@ function httpError(status, code, message) {
   error.code = code;
   return error;
 }
+
 
 
 
