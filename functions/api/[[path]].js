@@ -24,22 +24,22 @@ export async function onRequest(context) {
     const url = new URL(request.url);
     const route = url.pathname.replace(/^\/api\/?/, "").replace(/\/+$/g, "");
 
-    if (request.method === "POST" && route === "auth/login") return login(context);
-    if (request.method === "POST" && route === "auth/logout") return logout(context);
-    if (request.method === "GET" && route === "auth/me") return me(context);
+    if (request.method === "POST" && route === "auth/login") return await login(context);
+    if (request.method === "POST" && route === "auth/logout") return await logout(context);
+    if (request.method === "GET" && route === "auth/me") return await me(context);
 
-    if (request.method === "GET" && route === "admin/bootstrap") return bootstrapStatus(context);
-    if (request.method === "POST" && route === "admin/bootstrap") return bootstrapAdmin(context);
-    if (request.method === "GET" && route === "admin/access-keys") return listAccessKeys(context);
-    if (request.method === "POST" && route === "admin/access-keys") return createAccessKey(context);
-    if (request.method === "POST" && route === "admin/access-keys/update") return updateAccessKey(context);
-    if (request.method === "GET" && route === "admin/usage") return listUsage(context);
+    if (request.method === "GET" && route === "admin/bootstrap") return await bootstrapStatus(context);
+    if (request.method === "POST" && route === "admin/bootstrap") return await bootstrapAdmin(context);
+    if (request.method === "GET" && route === "admin/access-keys") return await listAccessKeys(context);
+    if (request.method === "POST" && route === "admin/access-keys") return await createAccessKey(context);
+    if (request.method === "POST" && route === "admin/access-keys/update") return await updateAccessKey(context);
+    if (request.method === "GET" && route === "admin/usage") return await listUsage(context);
 
-    if (request.method === "GET" && route === "bookmarklet/script") return bookmarkletScript(context);
+    if (request.method === "GET" && route === "bookmarklet/script") return await bookmarkletScript(context);
 
-    if (request.method === "POST" && route === "access-key/verify") return verifyAccessKeyRoute(context);
-    if (request.method === "POST" && route === "download-ticket/create") return createDownloadTicket(context);
-    if (request.method === "POST" && route === "download-ticket/report") return reportDownloadTicket(context);
+    if (request.method === "POST" && route === "access-key/verify") return await verifyAccessKeyRoute(context);
+    if (request.method === "POST" && route === "download-ticket/create") return await createDownloadTicket(context);
+    if (request.method === "POST" && route === "download-ticket/report") return await reportDownloadTicket(context);
 
     return apiError(404, "NOT_FOUND", "API route not found", corsHeaders(request));
   } catch (error) {
@@ -525,6 +525,7 @@ function httpError(status, code, message) {
   error.code = code;
   return error;
 }
+
 
 
 
