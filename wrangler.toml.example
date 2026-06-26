@@ -1,0 +1,8 @@
+name = "hsm-zzl"
+compatibility_date = "2026-06-26"
+pages_build_output_dir = "."
+
+[[d1_databases]]
+binding = "DB"
+database_name = "ktp_usage"
+database_id = "replace-with-your-d1-database-id"

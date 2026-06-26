@@ -1,0 +1,69 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>课堂派工具管理后台</title>
+    <meta name="description" content="管理课堂派工具使用密钥、每日额度和使用记录。">
+    <link rel="icon" href="../../assets/favicon.png" type="image/png">
+    <link rel="stylesheet" href="../styles.css">
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <a class="brand" href="../../index.html"><img src="../../assets/logo.png" alt=""><span>课堂派管理</span></a>
+        <nav class="nav"><a href="../../index.html">首页</a><a href="../index.html">工具</a><a href="index.html">管理</a></nav>
+      </header>
+      <main class="grid">
+        <section id="setupPanel" class="panel hidden">
+          <h1>初始化管理员</h1>
+          <p class="muted">线上第一次使用需要先在 Cloudflare 设置 `ADMIN_SETUP_TOKEN`，再用它创建管理员。本地预览不需要初始化。</p>
+          <form id="setupForm" class="grid two">
+            <label class="field"><span>初始化口令</span><input id="setupToken" type="password" required></label>
+            <label class="field"><span>管理员账号</span><input id="setupUsername" required></label>
+            <label class="field"><span>管理员密码</span><input id="setupPassword" type="password" required></label>
+            <div class="field"><span>&nbsp;</span><button class="primary" type="submit">创建管理员</button></div>
+          </form>
+          <p id="setupStatus" class="status"></p>
+        </section>
+        <section id="loginPanel" class="panel hidden">
+          <h1>管理员登录</h1>
+          <p id="localHint" class="muted hidden">获取管理员账户请联系作者</p>
+          <form id="loginForm" class="grid two">
+            <label class="field"><span>账号</span><input id="loginUsername" autocomplete="username" required></label>
+            <label class="field"><span>密码</span><input id="loginPassword" type="password" autocomplete="current-password" required></label>
+            <div class="field"><span>&nbsp;</span><button class="primary" type="submit">登录</button></div>
+          </form>
+          <p id="loginStatus" class="status"></p>
+        </section>
+        <section id="adminPanel" class="grid hidden">
+          <div class="panel"><div class="actions" style="justify-content: space-between;"><div><p class="eyebrow">Admin</p><h1 style="margin: 0;">密钥与次数</h1><p id="adminName" class="muted"></p></div><button id="logoutButton" type="button">退出</button></div></div>
+          <section class="panel">
+            <h2>生成使用密钥</h2>
+            <form id="createKeyForm" class="grid three">
+              <label class="field"><span>名称</span><input id="keyNameInput" placeholder="例如：张三" required></label>
+              <label class="field"><span>每日次数</span><input id="keyDailyLimit" type="number" min="0" max="9999" value="10"></label>
+              <label class="field"><span>备注</span><input id="keyNote" placeholder="可选"></label>
+              <div class="field"><span>&nbsp;</span><button class="primary" type="submit">生成密钥</button></div>
+            </form>
+            <div id="newKeyBox" class="ticket hidden"><span class="label">新密钥</span><div id="newKeySecret" class="code"></div><button id="copyNewKey" type="button">复制密钥</button></div>
+            <p id="createStatus" class="status"></p>
+          </section>
+          <section class="panel">
+            <div class="actions" style="justify-content: space-between;"><h2>密钥列表</h2><button id="refreshKeys" type="button">刷新</button></div>
+            <div class="table-wrap"><table><thead><tr><th>名称</th><th>完整密钥</th><th>状态</th><th>今日</th><th>每日额度</th><th>临时次数</th><th>操作</th></tr></thead><tbody id="keysBody"></tbody></table></div>
+            <p id="keysStatus" class="status"></p>
+          </section>
+          <section class="panel">
+            <div class="actions" style="justify-content: space-between;"><h2>今日记录</h2><button id="refreshUsage" type="button">刷新记录</button></div>
+            <div class="table-wrap"><table><thead><tr><th>时间</th><th>密钥</th><th>事件</th><th>说明</th></tr></thead><tbody id="usageBody"></tbody></table></div>
+            <p id="usageStatus" class="status"></p>
+          </section>
+        </section>
+      </main>
+    </div>
+    <script src="../mock-api.js"></script>
+    <script src="admin.js" defer></script>
+  </body>
+</html>
+
