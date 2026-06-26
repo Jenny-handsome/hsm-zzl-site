@@ -45,7 +45,7 @@ export async function onRequest(context) {
   } catch (error) {
     const status = error.status || 500;
     const code = error.code || "INTERNAL_ERROR";
-    const message = status >= 500 ? "Service is temporarily unavailable" : error.message;
+    const message = error.expose || (error.code && error.code !== "INTERNAL_ERROR") ? error.message : (status >= 500 ? "Service is temporarily unavailable" : error.message);
     return apiError(status, code, message, corsHeaders(request));
   }
 }
@@ -538,6 +538,8 @@ function httpError(status, code, message) {
   error.code = code;
   return error;
 }
+
+
 
 
 

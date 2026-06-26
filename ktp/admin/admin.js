@@ -14,7 +14,7 @@
     if (window.KTP_LOCAL_API) return window.KTP_LOCAL_API.request(path, options);
     const response = await fetch(`/api/${path}`, { credentials: "same-origin", headers: { "content-type": "application/json", ...(options.headers || {}) }, ...options, body: options.body ? JSON.stringify(options.body) : undefined });
     const data = await response.json().catch(() => ({}));
-    if (!response.ok || data.ok === false) throw new Error(data.message || "请求失败");
+    if (!response.ok || data.ok === false) throw new Error(data.code ? `${data.message || "请求失败"}（${data.code}）` : (data.message || "请求失败"));
     return data;
   }
 
@@ -169,3 +169,4 @@
   nodes.refreshUsage.addEventListener("click", loadUsage);
   init().catch((error) => { nodes.loginPanel.classList.remove("hidden"); setStatus(nodes.loginStatus, error.message, "error"); });
 })();
+
