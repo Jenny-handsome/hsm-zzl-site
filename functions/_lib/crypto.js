@@ -1,32 +1,31 @@
-const encoder = new TextEncoder();
+﻿const encoder = new TextEncoder();
 const ITERATIONS = 120000;
 
-function bytesToBase64Url(bytes) {
-  let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+function bytesToHex(bytes) {
+  return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-function base64UrlToBytes(value) {
-  const base64 = String(value || "").replace(/-/g, "+").replace(/_/g, "/");
-  const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
-  const binary = atob(padded);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+function hexToBytes(value) {
+  const hex = String(value || "").trim();
+  if (!/^[0-9a-f]+$/i.test(hex) || hex.length % 2 !== 0) {
+    throw new Error("Invalid hex string");
+  }
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < bytes.length; i += 1) {
+    bytes[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  }
   return bytes;
 }
 
 export function randomToken(byteLength = 32) {
   const bytes = new Uint8Array(byteLength);
   crypto.getRandomValues(bytes);
-  return bytesToBase64Url(bytes);
+  return bytesToHex(bytes);
 }
 
 export async function sha256Hex(value) {
   const hash = await crypto.subtle.digest("SHA-256", encoder.encode(String(value)));
-  return [...new Uint8Array(hash)]
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
+  return bytesToHex(new Uint8Array(hash));
 }
 
 export async function createPasswordHash(password) {
@@ -38,7 +37,7 @@ export async function createPasswordHash(password) {
     key,
     256
   );
-  return `pbkdf2_sha256$${ITERATIONS}$${bytesToBase64Url(salt)}$${bytesToBase64Url(new Uint8Array(bits))}`;
+  return `pbkdf2_sha256$${ITERATIONS}$${bytesToHex(salt)}$${bytesToHex(new Uint8Array(bits))}`;
 }
 
 export async function verifyPassword(password, storedHash) {
@@ -47,8 +46,8 @@ export async function verifyPassword(password, storedHash) {
   const iterations = Number(iterationText);
   if (!Number.isInteger(iterations) || iterations < 10000) return false;
 
-  const salt = base64UrlToBytes(saltText);
-  const expected = base64UrlToBytes(hashText);
+  const salt = hexToBytes(saltText);
+  const expected = hexToBytes(hashText);
   const key = await crypto.subtle.importKey("raw", encoder.encode(password), "PBKDF2", false, ["deriveBits"]);
   const bits = await crypto.subtle.deriveBits(
     { name: "PBKDF2", hash: "SHA-256", salt, iterations },
