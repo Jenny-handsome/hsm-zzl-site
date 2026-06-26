@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>课堂派下载工具</title>
-    <meta name="description" content="输入使用密钥后安装课堂派下载书签，在课堂派页面内运行下载。">
+    <meta name="description" content="输入使用密钥后安装下载按钮，打开课堂派页面后点击即可下载。">
     <link rel="icon" href="../assets/favicon.png" type="image/png">
     <link rel="stylesheet" href="styles.css">
   </head>
@@ -17,10 +17,10 @@
       <main>
         <section class="hero">
           <div>
-            <p class="eyebrow">Ketangpai Bookmarklet</p>
-            <h1>安装书签后在课堂派页面下载</h1>
-            <p>先输入管理员发放的密钥。验证成功后，把“课堂派下载”按钮拖到浏览器书签栏。以后打开课堂派资料页，点击这个书签即可扣次并下载。</p>
-            <p id="localHint" class="muted hidden">当前是本地预览模式，只能预览密钥验证和安装说明；真实书签需要部署到网站后使用。</p>
+            <p class="eyebrow">课堂派本地下载</p>
+            <h1>打开课堂派页面，一点下载</h1>
+            <p>先输入管理员发放的密钥。首次把下载按钮放到浏览器书签栏，以后打开课堂派资料页，点击“课堂派下载”即可自动下载。</p>
+            <p id="localHint" class="muted hidden">当前是本地预览模式，只能预览页面；真实下载需要部署到网站后使用。</p>
           </div>
           <form id="keyPanel" class="panel">
             <h2>使用密钥</h2>
@@ -41,9 +41,9 @@
         </section>
         <section id="toolPanel" class="grid two hidden">
           <article class="panel">
-            <h2>安装书签</h2>
-            <p class="muted">把下面这个按钮拖到浏览器书签栏。它只包含远程加载器，完整下载逻辑由网站接口动态返回。</p>
-            <div class="actions"><a id="bookmarkletLink" class="button primary" href="#">课堂派下载</a><button id="copyBookmarklet" type="button">复制书签地址</button></div>
+            <h2>下载按钮</h2>
+            <p class="muted">首次使用：把下面的“课堂派下载”拖到浏览器书签栏。之后打开课堂派资料页，点它就会本地下载。</p>
+            <div class="actions"><a id="bookmarkletLink" class="button primary" href="#">课堂派下载</a></div>
             <p id="bookmarkStatus" class="status"></p>
           </article>
           <article class="panel">
@@ -60,3 +60,5 @@
     <script src="app.js" defer></script>
   </body>
 </html>
+
+

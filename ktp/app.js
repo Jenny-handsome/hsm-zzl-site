@@ -5,7 +5,7 @@
   const nodes = {
     localHint: $("localHint"), keyPanel: $("keyPanel"), accessKey: $("accessKey"), keyStatus: $("keyStatus"),
     accountPanel: $("accountPanel"), keyName: $("keyName"), quotaRemaining: $("quotaRemaining"), quotaUsed: $("quotaUsed"), quotaLimit: $("quotaLimit"), clearKeyButton: $("clearKeyButton"),
-    toolPanel: $("toolPanel"), bookmarkletLink: $("bookmarkletLink"), copyBookmarklet: $("copyBookmarklet"), bookmarkStatus: $("bookmarkStatus")
+    toolPanel: $("toolPanel"), bookmarkletLink: $("bookmarkletLink"), bookmarkStatus: $("bookmarkStatus")
   };
 
   async function api(path, options = {}) {
@@ -78,17 +78,9 @@
       setStatus(nodes.bookmarkStatus, "本地预览不能安装真实书签，请部署到网站后再安装。", "error");
       return;
     }
-    setStatus(nodes.bookmarkStatus, "请把按钮拖到书签栏；直接点击不会在课堂派页面运行。", "ok");
-  });
-
-  nodes.copyBookmarklet.addEventListener("click", async () => {
-    if (isLocalPreview) {
-      setStatus(nodes.bookmarkStatus, "本地预览不能生成可用书签地址。", "error");
-      return;
-    }
-    await navigator.clipboard.writeText(nodes.bookmarkletLink.href);
-    setStatus(nodes.bookmarkStatus, "书签地址已复制。", "ok");
+    setStatus(nodes.bookmarkStatus, "首次请把这个按钮拖到书签栏；以后在课堂派页面点它即可下载。", "ok");
   });
 
   render();
 })();
+
