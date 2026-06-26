@@ -5,7 +5,7 @@
   const nodes = {
     localHint: $("localHint"), keyPanel: $("keyPanel"), accessKey: $("accessKey"), keyStatus: $("keyStatus"),
     accountPanel: $("accountPanel"), keyName: $("keyName"), quotaRemaining: $("quotaRemaining"), quotaUsed: $("quotaUsed"), quotaLimit: $("quotaLimit"), clearKeyButton: $("clearKeyButton"),
-    toolPanel: $("toolPanel"), downloadButton: $("downloadButton"), downloadStatus: $("downloadStatus")
+    toolPanel: $("toolPanel"), downloadButton: $("downloadButton"), openHelperLink: $("openHelperLink"), downloadStatus: $("downloadStatus")
   };
 
   async function api(path, options = {}) {
@@ -53,6 +53,8 @@
       const data = await api("access-key/verify", { method: "POST", body: { accessKey: state.accessKey } });
       state.key = data.accessKey;
       state.quota = data.quota;
+      nodes.openHelperLink.classList.add("hidden");
+      nodes.openHelperLink.removeAttribute("href");
       setStatus(nodes.keyStatus, "");
       render();
     } catch (error) {
@@ -66,12 +68,15 @@
     state.quota = null;
     nodes.accessKey.value = "";
     setStatus(nodes.downloadStatus, "");
+    nodes.openHelperLink.classList.add("hidden");
+    nodes.openHelperLink.removeAttribute("href");
     render();
   });
 
   nodes.downloadButton.addEventListener("click", async () => {
     if (isLocalPreview) {
       setStatus(nodes.downloadStatus, "本地预览已模拟扣次；部署到网站后会打开本地下载助手。", "ok");
+      nodes.openHelperLink.classList.add("hidden");
       try {
         const data = await api("local-download/start", { method: "POST", body: { accessKey: state.accessKey } });
         state.quota = data.quota;
@@ -83,14 +88,20 @@
     }
 
     nodes.downloadButton.disabled = true;
+    nodes.openHelperLink.classList.add("hidden");
+    nodes.openHelperLink.removeAttribute("href");
     setStatus(nodes.downloadStatus, "正在扣次数并打开本地助手...");
     try {
       const data = await api("local-download/start", { method: "POST", body: { accessKey: state.accessKey } });
       state.quota = data.quota;
       render();
+      nodes.openHelperLink.href = data.launchUrl;
+      nodes.openHelperLink.classList.remove("hidden");
       window.location.href = data.launchUrl;
-      setStatus(nodes.downloadStatus, "已扣 1 次。若没有弹出本地窗口，请先安装本地助手。", "ok");
+      setStatus(nodes.downloadStatus, "已扣 1 次。如果没有弹出本地窗口，请点击“打开本地助手”。", "ok");
     } catch (error) {
+      nodes.openHelperLink.classList.add("hidden");
+      nodes.openHelperLink.removeAttribute("href");
       setStatus(nodes.downloadStatus, error.message, "error");
     } finally {
       nodes.downloadButton.disabled = false;
