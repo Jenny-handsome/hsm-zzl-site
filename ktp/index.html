@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>课堂派下载工具</title>
-    <meta name="description" content="输入使用密钥后安装下载按钮，打开课堂派页面后点击即可下载。">
+    <meta name="description" content="输入使用密钥后启动本地下载助手，粘贴课堂派资料链接即可下载。">
     <link rel="icon" href="../assets/favicon.png" type="image/png">
     <link rel="stylesheet" href="styles.css">
   </head>
@@ -18,9 +18,9 @@
         <section class="hero">
           <div>
             <p class="eyebrow">课堂派本地下载</p>
-            <h1>打开课堂派页面，一点下载</h1>
-            <p>先输入管理员发放的密钥。首次把下载按钮放到浏览器书签栏，以后打开课堂派资料页，点击“课堂派下载”即可自动下载。</p>
-            <p id="localHint" class="muted hidden">当前是本地预览模式，只能预览页面；真实下载需要部署到网站后使用。</p>
+            <h1>点击下载，本地保存资料</h1>
+            <p>输入管理员发放的密钥后，点击“课堂派下载”会扣除 1 次并打开本地下载助手。把课堂派资料链接粘贴进去即可下载到电脑。</p>
+            <p id="localHint" class="muted hidden">当前是本地预览模式，只能预览扣次流程；真实下载需要部署到网站并安装本地助手。</p>
           </div>
           <form id="keyPanel" class="panel">
             <h2>使用密钥</h2>
@@ -34,24 +34,27 @@
             <div class="quota">
               <div class="stat"><strong id="quotaRemaining">0</strong><span>剩余</span></div>
               <div class="stat"><strong id="quotaUsed">0</strong><span>已用</span></div>
-              <div class="stat"><strong id="quotaLimit">5</strong><span>每日</span></div>
+              <div class="stat"><strong id="quotaLimit">10</strong><span>每日</span></div>
             </div>
             <div class="actions" style="margin-top: 14px;"><button id="clearKeyButton" type="button">清除密钥</button></div>
           </aside>
         </section>
         <section id="toolPanel" class="grid two hidden">
           <article class="panel">
-            <h2>下载按钮</h2>
-            <p class="muted">首次使用：把下面的“课堂派下载”拖到浏览器书签栏。之后打开课堂派资料页，点它就会本地下载。</p>
-            <div class="actions"><a id="bookmarkletLink" class="button primary" href="#">课堂派下载</a></div>
-            <p id="bookmarkStatus" class="status"></p>
+            <h2>本地下载</h2>
+            <p class="muted">首次使用先安装本地助手。安装完成后，点击下面按钮会打开本地窗口。</p>
+            <div class="actions">
+              <button id="downloadButton" class="primary" type="button">课堂派下载</button>
+              <a class="button" href="https://github.com/Jenny-handsome/hsm-zzl-site/releases/latest/download/ktp-local-helper.zip">下载本地助手</a>
+            </div>
+            <p id="downloadStatus" class="status"></p>
           </article>
           <article class="panel">
             <h2>使用方法</h2>
-            <p class="muted">1. 先在浏览器登录课堂派。</p>
-            <p class="muted">2. 打开要下载的课堂派资料详情页。</p>
-            <p class="muted">3. 点击书签栏里的“课堂派下载”。</p>
-            <p class="muted">脚本会在课堂派页面内运行，自动用当前页面链接创建下载任务、扣 1 次，并触发附件下载。</p>
+            <p class="muted">1. 先在 Edge 或 Chrome 登录课堂派。</p>
+            <p class="muted">2. 在本页输入密钥并点击“课堂派下载”。</p>
+            <p class="muted">3. 本地窗口打开后，粘贴课堂派资料链接并开始下载。</p>
+            <p class="muted">下载时只在你的电脑读取课堂派登录状态，网站不会保存课堂派 token。</p>
           </article>
         </section>
       </main>

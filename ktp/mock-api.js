@@ -42,7 +42,7 @@
       keyPrefix: key.secret.slice(0, 12),
       secret: key.secret,
       disabled: Boolean(key.disabled),
-      dailyLimit: Number(key.dailyLimit) || 5,
+      dailyLimit: Number(key.dailyLimit) || 10,
       createdAt: key.createdAt,
       updatedAt: key.updatedAt,
       lastUsedAt: key.lastUsedAt || null,
@@ -88,7 +88,7 @@
         requireAdmin(data);
         if ((options.method || "GET") === "GET") return { ok: true, keys: data.keys.map((key) => publicKey(key)) };
         const secret = randomId("ktp");
-        const key = { id: randomId("key"), secret, name: String(body.name || "未命名密钥").trim(), note: String(body.note || "").trim(), disabled: false, dailyLimit: Math.max(0, Number(body.dailyLimit) || 5), createdAt: now, updatedAt: now, usage: {} };
+        const key = { id: randomId("key"), secret, name: String(body.name || "未命名密钥").trim(), note: String(body.note || "").trim(), disabled: false, dailyLimit: Math.max(0, Number(body.dailyLimit) || 10), createdAt: now, updatedAt: now, usage: {} };
         data.keys.unshift(key); save(data);
         return { ok: true, accessKey: publicKey(key), secret };
       }
@@ -112,16 +112,18 @@
 
       if (path === "admin/usage") { requireAdmin(data); return { ok: true, events: data.events.slice(0, 200) }; }
 
-      if (path === "download-ticket/create") {
+      if (path === "local-download/start" || path === "download-ticket/create") {
         const key = requireKey(data, body.accessKey);
         const date = today(); key.usage ||= {}; key.usage[date] ||= { usedCount: 0, extraCount: 0 };
         if (quotaFor(key).remaining <= 0) throw new Error("今日剩余次数不足");
         key.usage[date].usedCount += 1; key.lastUsedAt = now;
         const ticket = { id: randomId("ticket"), keyId: key.id, status: "issued", createdAt: now };
         data.tickets.unshift(ticket);
-        data.events.unshift({ id: randomId("event"), keyName: key.name, ticketId: ticket.id, eventType: "ticket_created", message: "本地预览扣除 1 次", createdAt: now });
+        data.events.unshift({ id: randomId("event"), keyName: key.name, ticketId: ticket.id, eventType: "ticket_created", message: path === "local-download/start" ? "本地预览启动下载助手" : "本地预览扣除 1 次", createdAt: now });
         save(data);
-        return { ok: true, ticket: { id: ticket.id, expiresAt: new Date(Date.now() + 30 * 60000).toISOString() }, quota: quotaFor(key) };
+        const response = { ok: true, ticket: { id: ticket.id, expiresAt: new Date(Date.now() + 30 * 60000).toISOString() }, quota: quotaFor(key) };
+        if (path === "local-download/start") response.launchUrl = `ktpdown://open?site=local-preview&ticket=${encodeURIComponent(ticket.id)}`;
+        return response;
       }
 
       if (path === "download-ticket/report") {

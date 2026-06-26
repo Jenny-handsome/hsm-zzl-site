@@ -5,17 +5,22 @@
   const nodes = {
     localHint: $("localHint"), keyPanel: $("keyPanel"), accessKey: $("accessKey"), keyStatus: $("keyStatus"),
     accountPanel: $("accountPanel"), keyName: $("keyName"), quotaRemaining: $("quotaRemaining"), quotaUsed: $("quotaUsed"), quotaLimit: $("quotaLimit"), clearKeyButton: $("clearKeyButton"),
-    toolPanel: $("toolPanel"), bookmarkletLink: $("bookmarkletLink"), bookmarkStatus: $("bookmarkStatus")
+    toolPanel: $("toolPanel"), downloadButton: $("downloadButton"), downloadStatus: $("downloadStatus")
   };
 
   async function api(path, options = {}) {
     if (window.KTP_LOCAL_API) return window.KTP_LOCAL_API.request(path, options);
-    const response = await fetch(`/api/${path}`, {
-      credentials: "same-origin",
-      headers: { "content-type": "application/json", ...(options.headers || {}) },
-      ...options,
-      body: options.body ? JSON.stringify(options.body) : undefined
-    });
+    let response;
+    try {
+      response = await fetch(`/api/${path}`, {
+        credentials: "same-origin",
+        headers: { "content-type": "application/json", ...(options.headers || {}) },
+        ...options,
+        body: options.body ? JSON.stringify(options.body) : undefined
+      });
+    } catch {
+      throw new Error("网站接口连接失败，请确认 Cloudflare 部署已完成");
+    }
     const data = await response.json().catch(() => ({}));
     if (!response.ok || data.ok === false) throw new Error(data.message || "请求失败");
     return data;
@@ -38,14 +43,6 @@
     nodes.quotaRemaining.textContent = state.quota?.remaining ?? 0;
     nodes.quotaUsed.textContent = state.quota?.usedCount ?? 0;
     nodes.quotaLimit.textContent = state.quota?.dailyLimit ?? 5;
-    nodes.bookmarkletLink.href = buildBookmarklet(state.accessKey);
-  }
-
-  function buildBookmarklet(accessKey) {
-    if (isLocalPreview) return "#";
-    const scriptUrl = `${location.origin}/api/bookmarklet/script?v=`;
-    const loader = `(function(){var s=document.createElement('script');s.src='${scriptUrl}'+Date.now()+'#key='+encodeURIComponent('${accessKey}');document.documentElement.appendChild(s);})();`;
-    return `javascript:${encodeURIComponent(loader)}`;
   }
 
   nodes.keyPanel.addEventListener("submit", async (event) => {
@@ -68,17 +65,36 @@
     state.key = null;
     state.quota = null;
     nodes.accessKey.value = "";
-    setStatus(nodes.bookmarkStatus, "");
+    setStatus(nodes.downloadStatus, "");
     render();
   });
 
-  nodes.bookmarkletLink.addEventListener("click", (event) => {
+  nodes.downloadButton.addEventListener("click", async () => {
     if (isLocalPreview) {
-      event.preventDefault();
-      setStatus(nodes.bookmarkStatus, "本地预览不能安装真实书签，请部署到网站后再安装。", "error");
+      setStatus(nodes.downloadStatus, "本地预览已模拟扣次；部署到网站后会打开本地下载助手。", "ok");
+      try {
+        const data = await api("local-download/start", { method: "POST", body: { accessKey: state.accessKey } });
+        state.quota = data.quota;
+        render();
+      } catch (error) {
+        setStatus(nodes.downloadStatus, error.message, "error");
+      }
       return;
     }
-    setStatus(nodes.bookmarkStatus, "首次请把这个按钮拖到书签栏；以后在课堂派页面点它即可下载。", "ok");
+
+    nodes.downloadButton.disabled = true;
+    setStatus(nodes.downloadStatus, "正在扣次数并打开本地助手...");
+    try {
+      const data = await api("local-download/start", { method: "POST", body: { accessKey: state.accessKey } });
+      state.quota = data.quota;
+      render();
+      window.location.href = data.launchUrl;
+      setStatus(nodes.downloadStatus, "已扣 1 次。若没有弹出本地窗口，请先安装本地助手。", "ok");
+    } catch (error) {
+      setStatus(nodes.downloadStatus, error.message, "error");
+    } finally {
+      nodes.downloadButton.disabled = false;
+    }
   });
 
   render();

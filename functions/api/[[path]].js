@@ -23,6 +23,9 @@ export async function onRequest(context) {
 
     const url = new URL(request.url);
     const route = url.pathname.replace(/^\/api\/?/, "").replace(/\/+$/g, "");
+    if (["admin/usage", "access-key/verify", "local-download/start", "download-ticket/create", "download-ticket/report"].includes(route)) {
+      await cleanupOldLogs(context.env);
+    }
 
     if (request.method === "POST" && route === "auth/login") return await login(context);
     if (request.method === "POST" && route === "auth/logout") return await logout(context);
@@ -35,9 +38,8 @@ export async function onRequest(context) {
     if (request.method === "POST" && route === "admin/access-keys/update") return await updateAccessKey(context);
     if (request.method === "GET" && route === "admin/usage") return await listUsage(context);
 
-    if (request.method === "GET" && route === "bookmarklet/script") return await bookmarkletScript(context);
-
     if (request.method === "POST" && route === "access-key/verify") return await verifyAccessKeyRoute(context);
+    if (request.method === "POST" && route === "local-download/start") return await startLocalDownload(context);
     if (request.method === "POST" && route === "download-ticket/create") return await createDownloadTicket(context);
     if (request.method === "POST" && route === "download-ticket/report") return await reportDownloadTicket(context);
 
@@ -267,6 +269,26 @@ async function createDownloadTicket({ request, env }) {
   const body = await readJson(request);
   const access = await requireAccessKey(env, body.accessKey);
   const parsed = parseKetangpaiUrl(body.targetUrl);
+  const data = await issueDownloadTicketData({
+    env,
+    access,
+    targetHash: await sha256Hex(parsed.normalizedUrl),
+    message: "deducted 1",
+    contentType: parsed.contentType
+  });
+  return json(data);
+}
+
+async function startLocalDownload({ request, env }) {
+  const body = await readJson(request);
+  const access = await requireAccessKey(env, body.accessKey);
+  const data = await issueDownloadTicketData({ env, access, targetHash: "", message: "local helper started" });
+  const origin = new URL(request.url).origin;
+  const launchUrl = `ktpdown://open?site=${encodeURIComponent(origin)}&ticket=${encodeURIComponent(data.ticket.id)}`;
+  return json({ ...data, launchUrl }, 200, corsHeaders(request));
+}
+
+async function issueDownloadTicketData({ env, access, targetHash, message, contentType = "local" }) {
   const usageDate = getUsageDate();
   const now = new Date();
   const nowText = now.toISOString();
@@ -283,20 +305,21 @@ async function createDownloadTicket({ request, env }) {
 
   const ticketId = randomToken(24);
   const expiresAt = new Date(now.getTime() + TICKET_MINUTES * 60000).toISOString();
+  const storedTargetHash = targetHash || await sha256Hex(`local-download:${ticketId}`);
   await env.DB.prepare(
     "INSERT INTO key_download_tickets (id, access_key_id, target_hash, usage_date, status, created_at, expires_at) VALUES (?, ?, ?, ?, 'issued', ?, ?)"
-  ).bind(ticketId, access.id, await sha256Hex(parsed.normalizedUrl), usageDate, nowText, expiresAt).run();
+  ).bind(ticketId, access.id, storedTargetHash, usageDate, nowText, expiresAt).run();
   await env.DB.prepare("UPDATE access_keys SET last_used_at = ?, updated_at = ? WHERE id = ?")
     .bind(nowText, nowText, access.id).run();
   await env.DB.prepare(
-    "INSERT INTO key_usage_events (access_key_id, ticket_id, usage_date, event_type, message, created_at) VALUES (?, ?, ?, 'ticket_created', 'deducted 1', ?)"
-  ).bind(access.id, ticketId, usageDate, nowText).run();
+    "INSERT INTO key_usage_events (access_key_id, ticket_id, usage_date, event_type, message, created_at) VALUES (?, ?, ?, 'ticket_created', ?, ?)"
+  ).bind(access.id, ticketId, usageDate, sanitizeMessage(message || "deducted 1"), nowText).run();
 
-  return json({
+  return {
     ok: true,
-    ticket: { id: ticketId, expiresAt, usageDate, contentType: parsed.contentType },
+    ticket: { id: ticketId, expiresAt, usageDate, contentType },
     quota: await getKeyQuota(env, access)
-  });
+  };
 }
 
 async function reportDownloadTicket({ request, env }) {
