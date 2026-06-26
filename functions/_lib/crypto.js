@@ -1,5 +1,6 @@
 ﻿const encoder = new TextEncoder();
-const ITERATIONS = 120000;
+const NATIVE_ITERATIONS = 120000;
+const FALLBACK_ITERATIONS = 20000;
 
 function bytesToHex(bytes) {
   return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
@@ -17,6 +18,86 @@ function hexToBytes(value) {
   return bytes;
 }
 
+function concatBytes(left, right) {
+  const out = new Uint8Array(left.length + right.length);
+  out.set(left, 0);
+  out.set(right, left.length);
+  return out;
+}
+
+function blockIndexBytes(index) {
+  return new Uint8Array([
+    (index >>> 24) & 255,
+    (index >>> 16) & 255,
+    (index >>> 8) & 255,
+    index & 255
+  ]);
+}
+
+function timingSafeEqual(left, right) {
+  if (left.length !== right.length) return false;
+  let diff = 0;
+  for (let i = 0; i < left.length; i += 1) diff |= left[i] ^ right[i];
+  return diff === 0;
+}
+
+async function hmacSha256Key(password) {
+  return crypto.subtle.importKey(
+    "raw",
+    encoder.encode(String(password)),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+}
+
+async function hmacSha256(key, data) {
+  const signature = await crypto.subtle.sign("HMAC", key, data);
+  return new Uint8Array(signature);
+}
+
+async function pbkdf2Native(password, salt, iterations, bitLength) {
+  const key = await crypto.subtle.importKey("raw", encoder.encode(String(password)), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", hash: "SHA-256", salt, iterations },
+    key,
+    bitLength
+  );
+  return new Uint8Array(bits);
+}
+
+async function pbkdf2Fallback(password, salt, iterations, byteLength) {
+  const key = await hmacSha256Key(password);
+  const blocks = [];
+  let generated = 0;
+  for (let block = 1; generated < byteLength; block += 1) {
+    let u = await hmacSha256(key, concatBytes(salt, blockIndexBytes(block)));
+    const t = new Uint8Array(u);
+    for (let i = 1; i < iterations; i += 1) {
+      u = await hmacSha256(key, u);
+      for (let j = 0; j < t.length; j += 1) t[j] ^= u[j];
+    }
+    blocks.push(t);
+    generated += t.length;
+  }
+
+  const out = new Uint8Array(generated);
+  let offset = 0;
+  for (const block of blocks) {
+    out.set(block, offset);
+    offset += block.length;
+  }
+  return out.slice(0, byteLength);
+}
+
+async function derivePasswordBytes(password, salt, iterations, byteLength) {
+  try {
+    return await pbkdf2Native(password, salt, iterations, byteLength * 8);
+  } catch {
+    return pbkdf2Fallback(password, salt, Math.min(iterations, FALLBACK_ITERATIONS), byteLength);
+  }
+}
+
 export function randomToken(byteLength = 32) {
   const bytes = new Uint8Array(byteLength);
   crypto.getRandomValues(bytes);
@@ -31,13 +112,14 @@ export async function sha256Hex(value) {
 export async function createPasswordHash(password) {
   const salt = new Uint8Array(16);
   crypto.getRandomValues(salt);
-  const key = await crypto.subtle.importKey("raw", encoder.encode(password), "PBKDF2", false, ["deriveBits"]);
-  const bits = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", hash: "SHA-256", salt, iterations: ITERATIONS },
-    key,
-    256
-  );
-  return `pbkdf2_sha256$${ITERATIONS}$${bytesToHex(salt)}$${bytesToHex(new Uint8Array(bits))}`;
+
+  try {
+    const hash = await pbkdf2Native(password, salt, NATIVE_ITERATIONS, 256);
+    return `pbkdf2_sha256$${NATIVE_ITERATIONS}$${bytesToHex(salt)}$${bytesToHex(hash)}`;
+  } catch {
+    const hash = await pbkdf2Fallback(password, salt, FALLBACK_ITERATIONS, 32);
+    return `pbkdf2_sha256$${FALLBACK_ITERATIONS}$${bytesToHex(salt)}$${bytesToHex(hash)}`;
+  }
 }
 
 export async function verifyPassword(password, storedHash) {
@@ -48,16 +130,6 @@ export async function verifyPassword(password, storedHash) {
 
   const salt = hexToBytes(saltText);
   const expected = hexToBytes(hashText);
-  const key = await crypto.subtle.importKey("raw", encoder.encode(password), "PBKDF2", false, ["deriveBits"]);
-  const bits = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", hash: "SHA-256", salt, iterations },
-    key,
-    expected.length * 8
-  );
-  const actual = new Uint8Array(bits);
-  if (actual.length !== expected.length) return false;
-
-  let diff = 0;
-  for (let i = 0; i < actual.length; i += 1) diff |= actual[i] ^ expected[i];
-  return diff === 0;
+  const actual = await derivePasswordBytes(password, salt, iterations, expected.length);
+  return timingSafeEqual(actual, expected);
 }
