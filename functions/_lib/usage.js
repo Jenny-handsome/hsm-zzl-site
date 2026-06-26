@@ -38,17 +38,17 @@ export function parseKetangpaiUrl(value) {
   try {
     url = new URL(String(value || "").trim());
   } catch {
-    throw new Error("璇疯緭鍏ユ湁鏁堢殑璇惧爞娲捐祫鏂欓摼鎺?);
+    throw new Error("请输入有效的课堂派资料链接");
   }
 
   if (url.protocol !== "https:" || url.hostname !== "w.ketangpai.com") {
-    throw new Error("鍙敮鎸?https://w.ketangpai.com 鐨勮鍫傛淳璧勬枡閾炬帴");
+    throw new Error("只支持 https://w.ketangpai.com 的课堂派资料链接");
   }
 
   const id = url.searchParams.get("id");
   const courseId = url.searchParams.get("courseId") || url.searchParams.get("courseid");
   if (!id || !courseId) {
-    throw new Error("璇惧爞娲鹃摼鎺ョ己灏?id 鎴?courseId");
+    throw new Error("课堂派链接缺少 id 或 courseId");
   }
 
   return {
@@ -58,4 +58,3 @@ export function parseKetangpaiUrl(value) {
     contentType: url.searchParams.get("type") || "2"
   };
 }
-
